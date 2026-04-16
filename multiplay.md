@@ -48,56 +48,144 @@ When you see output containing patterns like:
 
 ### Auto-Sharing with Cloudflare Tunnel
 
-**When Claude detects a dev server starting**, it will:
-1. Check if `cloudflared` is installed (if not, offer to install it)
-2. Automatically run `cloudflared tunnel --url http://localhost:PORT`
-3. Display the shareable URL prominently
-4. Keep the tunnel running in the background
+**CRITICAL:** Tunnel creation requires dev server configuration changes. Follow the complete procedure below.
+
+**When Claude detects a dev server starting**, follow this sequence:
+1. Check if `cloudflared` is installed (if not, install it)
+2. **Configure dev server to allow cloudflare hosts** (see dev server configs below)
+3. Restart dev server for config to take effect
+4. Create tunnel with HTTP/2 protocol (more reliable than default QUIC)
+5. Verify tunnel connection established
+6. Display the shareable URL
 
 **Manual tunnel creation:**
 If you need to create a tunnel manually, say "share my dev server" or "create tunnel"
 
+**Dev Server Configuration (REQUIRED FIRST STEP)**
+
+Most dev servers block unknown hosts by default. Configure BEFORE creating tunnel:
+
+**Vite (vite.config.js):**
+```javascript
+export default defineConfig({
+  // ... existing config
+  server: {
+    allowedHosts: ['.trycloudflare.com'],
+  },
+})
+```
+
+**Next.js (next.config.js):**
+```javascript
+module.exports = {
+  // ... existing config
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          { key: 'Access-Control-Allow-Origin', value: '*' },
+        ],
+      },
+    ]
+  },
+}
+```
+
+**Webpack Dev Server:**
+```javascript
+devServer: {
+  allowedHosts: ['.trycloudflare.com'],
+}
+```
+
 **Implementation when dev server detected:**
 ```bash
-# Detect common dev server patterns:
-# - "Local: http://localhost:5173"
-# - "Server running at http://localhost:3000"
-# Parse the port number, then:
-
-# Check if cloudflared is installed
+# STEP 1: Install cloudflared if needed
 if ! command -v cloudflared &>/dev/null; then
   echo "📦 Installing cloudflared..."
   brew install cloudflare/cloudflare/cloudflared
 fi
 
-# Start tunnel in background
+# STEP 2: Detect port from dev server output
+# Parse from patterns like "Local: http://localhost:5173"
+PORT=5173  # or parse from actual output
+
+# STEP 3: Configure dev server (example for Vite)
+# Check if vite.config.js exists and needs updating
+if [ -f "vite.config.js" ]; then
+  if ! grep -q "allowedHosts" vite.config.js; then
+    echo "⚠️  Vite needs configuration to allow cloudflare tunnels"
+    echo "Adding allowedHosts to vite.config.js..."
+    # Use Edit tool to add server.allowedHosts config
+    # Then restart dev server
+  fi
+fi
+
+# STEP 4: Clean up any existing tunnels
+pkill cloudflared 2>/dev/null
+sleep 1
+rm -f /tmp/cloudflare-tunnel.log
+
+# STEP 5: Create tunnel with HTTP/2 protocol (more reliable than QUIC)
 echo "🌐 Creating shareable link..."
-cloudflared tunnel --url http://localhost:PORT > /tmp/cloudflare-tunnel.log 2>&1 &
+cloudflared tunnel --url http://localhost:$PORT --protocol http2 > /tmp/cloudflare-tunnel.log 2>&1 &
 TUNNEL_PID=$!
 
-# Wait for tunnel URL to appear
-sleep 3
-TUNNEL_URL=$(grep -oE 'https://[a-z0-9-]+\.trycloudflare\.com' /tmp/cloudflare-tunnel.log | head -1)
+# STEP 6: Wait for connection to establish (8 seconds, not 3)
+sleep 8
 
-if [ -n "$TUNNEL_URL" ]; then
-  echo ""
-  echo "✅ Shareable link ready!"
-  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-  echo "🔗 Share this with your pair partner:"
-  echo ""
-  echo "   $TUNNEL_URL"
-  echo ""
-  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-  echo ""
-  echo "Tunnel running in background (PID: $TUNNEL_PID)"
-  echo "To stop: kill $TUNNEL_PID"
+# STEP 7: Verify tunnel is running and connected
+if ps -p $TUNNEL_PID > /dev/null; then
+  # Check if connection actually registered
+  if grep -q "Registered tunnel connection" /tmp/cloudflare-tunnel.log; then
+    echo "✓ Tunnel connected to Cloudflare edge"
+  else
+    echo "⚠️  Tunnel started but connection not confirmed"
+  fi
+  
+  # Extract URL using grep -a to handle binary characters
+  TUNNEL_URL=$(cat /tmp/cloudflare-tunnel.log | grep -a "trycloudflare.com" | grep -oE 'https://[a-z0-9-]+\.trycloudflare\.com' | head -1)
+  
+  if [ -n "$TUNNEL_URL" ]; then
+    echo ""
+    echo "✅ Shareable link ready!"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "🔗 Share this with your pair partner:"
+    echo ""
+    echo "   $TUNNEL_URL"
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+    echo "📍 Local:  http://localhost:$PORT"
+    echo "🌐 Remote: $TUNNEL_URL"
+    echo ""
+    echo "Tunnel running in background (PID: $TUNNEL_PID)"
+    echo "To stop: pkill cloudflared"
+  else
+    echo "❌ Failed to get tunnel URL. Check /tmp/cloudflare-tunnel.log"
+    tail -10 /tmp/cloudflare-tunnel.log
+  fi
 else
-  echo "❌ Failed to create tunnel. Check /tmp/cloudflare-tunnel.log"
+  echo "❌ Tunnel process died. Logs:"
+  cat /tmp/cloudflare-tunnel.log
 fi
 ```
 
+**Common Issues & Fixes:**
+
+| Issue | Symptom | Fix |
+|-------|---------|-----|
+| **Host not allowed** | "This host is not allowed" error | Add `.trycloudflare.com` to dev server's allowedHosts config, restart server |
+| **Connection timeout** | "Failed to dial a quic connection" | Use `--protocol http2` instead of default QUIC |
+| **Multiple tunnels** | Conflicting processes | Run `pkill cloudflared` before creating new tunnel |
+| **Tunnel not ready** | Empty URL after 3 seconds | Increase wait time to 8 seconds, check for "Registered tunnel connection" in logs |
+| **Port mismatch** | Tunnel points to wrong port | Dev server port may change on restart - parse actual port from output |
+
 **Stopping the tunnel:**
-The tunnel will automatically stop when you exit Claude or restart your dev server. To manually stop: `pkill cloudflared`
+- Manual: `pkill cloudflared`
+- Automatic: Tunnel stops when Claude exits or you restart dev server
+- Check running tunnels: `ps aux | grep cloudflared`
 
 ## Setup & Prerequisites
 
@@ -378,3 +466,48 @@ Claude: [tries to push, REJECTED - behind remote]
 - Prefer `--rebase` over merge for cleaner history
 - Always check for conflicts after rebase - pause for user resolution if needed
 - Generate descriptive commit messages from `git diff --stat` summary
+
+## Cloudflare Tunnel Troubleshooting
+
+**Real-world debugging session (2026-04-16):**
+
+Issues encountered and resolved:
+
+1. **Error 1033 - Cloudflare unable to resolve tunnel**
+   - **Cause**: Multiple cloudflared processes running simultaneously
+   - **Fix**: `pkill cloudflared` before creating new tunnel
+   - **Lesson**: Always clean up existing tunnels first
+
+2. **"Failed to dial a quic connection" - timeout errors**
+   - **Cause**: Default QUIC protocol blocked by firewall/network
+   - **Symptoms**: Logs show "timeout: handshake did not complete in time"
+   - **Fix**: Use `--protocol http2` explicitly
+   - **Lesson**: HTTP/2 is more reliable for quick tunnels
+
+3. **"This host is not allowed" - Vite blocking cloudflare**
+   - **Cause**: Vite's host checking blocks unknown domains by default
+   - **Symptoms**: Tunnel connects but browser shows "host not allowed"
+   - **Fix**: Add `server.allowedHosts: ['.trycloudflare.com']` to vite.config.js
+   - **Lesson**: Dev server must be configured BEFORE tunnel creation, requires restart
+
+4. **Port mismatch after server restart**
+   - **Cause**: Vite chose different port (5173 vs 5175) after restart
+   - **Symptoms**: Tunnel points to old port, connection fails
+   - **Fix**: Parse actual port from dev server output, recreate tunnel
+   - **Lesson**: Always verify port after config changes that require restart
+
+5. **Tunnel URL not appearing**
+   - **Cause**: Not waiting long enough for connection
+   - **Symptoms**: Logs show "Requesting new quick Tunnel" but no URL yet
+   - **Fix**: Wait 8 seconds instead of 3, verify "Registered tunnel connection" in logs
+   - **Lesson**: Connection establishment takes time, verify success before displaying URL
+
+**Correct order of operations:**
+1. ✅ Configure dev server to allow cloudflare hosts
+2. ✅ Restart dev server (if config changed)
+3. ✅ Parse actual port from server output
+4. ✅ Kill existing cloudflared processes
+5. ✅ Create tunnel with `--protocol http2`
+6. ✅ Wait 8 seconds for connection
+7. ✅ Verify "Registered tunnel connection" in logs
+8. ✅ Extract and display URL
