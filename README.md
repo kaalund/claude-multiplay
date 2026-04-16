@@ -2,129 +2,335 @@
 
 A Claude Code skill for seamless pair programming with automatic git handoffs and live dev server sharing.
 
-## Features
+## What You Get
 
-- **Automatic Git Handoffs**: Use `handoff` and `takeover` triggers for one-command turn-taking
-- **Live Dev Server Sharing**: Automatically creates Cloudflare tunnels when dev servers start
-- **Smart Sync**: Auto-detects when behind remote and syncs before pushing
-- **Zero Config Tunnels**: No account or auth token required for sharing
+- **One-Command Handoffs**: Say "handoff" to commit & push. Say "takeover" to pull & start coding.
+- **Live Preview**: Your partner sees your changes in real-time with hot reload
+- **Zero Config Tunnels**: No accounts or auth tokens needed to share your localhost
+- **Smart Sync**: Auto-detects when you're behind and syncs before pushing
 
-## Installation
+---
 
-### Option 1: Install via Claude Code CLI
+## Complete Setup Guide (For Beginners)
+
+Follow these steps if you're new to pair programming with git.
+
+### Step 1: Create a GitHub Account (First Time Only)
+
+**Person A (You):**
+
+1. Go to [github.com](https://github.com)
+2. Click **Sign up**
+3. Create your account (remember your username!)
+
+**Person B (Your Partner):**
+
+1. Do the same - create their own GitHub account
+2. Share their username with you
+
+---
+
+### Step 2: Install SourceTree (First Time Only)
+
+**Both developers need to do this:**
+
+1. Download SourceTree: [sourcetreeapp.com](https://www.sourcetreeapp.com/)
+2. Install it (follow the installer)
+3. Open SourceTree
+4. Skip Bitbucket/Atlassian account setup (click "Skip" or "Use GitHub")
+5. When asked to add GitHub account:
+   - Select **GitHub**
+   - Click **Connect Account**
+   - Sign in to GitHub in your browser
+   - Authorize SourceTree
+
+---
+
+### Step 3: Install Claude Code (First Time Only)
+
+**Both developers:**
+
+1. Install Claude Code CLI:
+   ```bash
+   curl -fsSL https://cli.anthropic.com/install.sh | sh
+   ```
+
+2. Or download the desktop app from [claude.ai/code](https://claude.ai/code)
+
+---
+
+### Step 4: Person A - Create the Project Repository
+
+**Person A only:**
+
+1. **Create a folder for your project:**
+   ```bash
+   mkdir my-project
+   cd my-project
+   ```
+
+2. **Initialize git:**
+   ```bash
+   git init
+   git branch -M main
+   ```
+
+3. **Create a GitHub repository:**
+   - Go to [github.com/new](https://github.com/new)
+   - Repository name: `my-project` (or whatever you want)
+   - Make it **Private** (unless you want it public)
+   - **Don't** check any of the "initialize" boxes
+   - Click **Create repository**
+
+4. **Connect your local folder to GitHub:**
+   
+   GitHub will show you commands. Copy and run them:
+   ```bash
+   git remote add origin https://github.com/YOUR_USERNAME/my-project.git
+   ```
+   
+   (Replace `YOUR_USERNAME` with your actual GitHub username)
+
+5. **Make your first commit:**
+   ```bash
+   echo "# My Project" > README.md
+   git add README.md
+   git commit -m "Initial commit"
+   git push -u origin main
+   ```
+
+6. **Invite Person B as a collaborator:**
+   - Go to your repo: `https://github.com/YOUR_USERNAME/my-project`
+   - Click **Settings** tab
+   - Click **Collaborators** in the left sidebar
+   - Click **Add people**
+   - Enter Person B's GitHub username
+   - Click **Add [username] to this repository**
+
+7. **Person B will receive an email invite** - they need to accept it!
+
+---
+
+### Step 5: Person B - Clone the Repository
+
+**Person B only (after accepting the invite):**
+
+1. **Get the repository URL from Person A:**
+   
+   Person A should share: `https://github.com/PERSON_A_USERNAME/my-project.git`
+
+2. **Clone using SourceTree:**
+   - Open SourceTree
+   - Click **+ New** tab
+   - Click **Clone from URL**
+   - **Source URL:** Paste the repository URL
+   - **Destination Path:** Choose where to save it (e.g., `/Users/yourname/my-project`)
+   - Click **Clone**
+
+   Or clone using terminal:
+   ```bash
+   git clone https://github.com/PERSON_A_USERNAME/my-project.git
+   cd my-project
+   ```
+
+3. **You now have the same code!**
+
+---
+
+### Step 6: Install Multiplay Skill
+
+**Both developers:**
 
 ```bash
-# Install the skill
-claude-code skill add https://github.com/kaalund/claude-multiplay
-
-# Verify installation
-claude-code skill list
-```
-
-### Option 2: Manual Installation
-
-1. Create the skills directory:
-```bash
+# Create skills directory
 mkdir -p ~/.claude/skills/multiplay
-```
 
-2. Download the skill:
-```bash
+# Download the skill
 curl -o ~/.claude/skills/multiplay/SKILL.md \
   https://raw.githubusercontent.com/kaalund/claude-multiplay/main/multiplay.md
+
+# Restart Claude Code
 ```
 
-3. Restart Claude Code
+---
 
-## Quick Start
+### Step 7: Install Cloudflare Tunnel (First Time Only)
 
-### 1. Set Up Shared Repository
-
-Both developers need access to the same git repository:
+**Both developers:**
 
 ```bash
-# Create a repo on GitHub/GitLab
-# Then connect your local repo:
-git remote add origin YOUR_REPO_URL
-git push -u origin main
+# On Mac:
+brew install cloudflare/cloudflare/cloudflared
+
+# On Windows (using Chocolatey):
+choco install cloudflared
 ```
 
-### 2. Start Pair Programming
+Don't worry - Claude will auto-install this if you skip it!
 
-**Developer A (Anders):**
+---
+
+## How to Use Multiplay
+
+### Person A Starts Coding
+
 ```bash
-# Start your dev server
+# Person A:
+cd my-project
+code .  # or open in your editor
+
+# Start Claude Code
+claude
+
+# Start your dev server (Vite, Next.js, etc.)
 npm run dev
-
-# Claude automatically detects and creates shareable link
-# Share the link with your partner
-
-# When done coding:
-# Say: "handoff"
 ```
 
-**Developer B (Bob):**
+**Claude automatically detects your dev server and shows:**
+```
+✅ Shareable link ready!
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔗 Share this with your pair partner:
+
+   https://abc-123-def.trycloudflare.com
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+**Share that link with Person B** - they can watch your changes live!
+
+### When Person A is Done
+
 ```bash
-# Open the link Anders shared to see live changes
-
-# When Anders hands off:
-# Say: "takeover"
-
-# Start your own dev server
-npm run dev
-
-# Claude creates a new shareable link for Anders
+# Person A types in Claude:
+handoff
 ```
 
-## Commands
+Claude will:
+1. Stage all your changes
+2. Create a commit
+3. Push to GitHub
 
-| Trigger | What it does |
-|---------|-------------|
-| `handoff` | Stage, commit, push your changes |
-| `takeover` | Pull latest changes and start coding |
-| `share dev server` | Manually create tunnel (usually auto-detected) |
+### Person B Takes Over
 
-## How It Works
+```bash
+# Person B types in Claude:
+takeover
+```
 
-1. **Anders codes** → Runs dev server (Vite, Next.js, etc.)
-2. **Claude detects server** → Auto-creates Cloudflare tunnel
-3. **Bob watches live** → Opens shared URL, sees changes with hot reload
-4. **Anders finishes** → Says "handoff" (commits & pushes)
-5. **Bob takes over** → Says "takeover" (pulls code)
+Claude will:
+1. Pull the latest changes
+2. Show what changed
+3. You're ready to code!
 
-## Requirements
+```bash
+# Person B starts their dev server:
+npm run dev
+```
 
-- Git repository with remote configured
-- Homebrew (for cloudflared installation)
-- Claude Code CLI or Desktop App
+Claude creates a **new** shareable link for Person A to watch.
+
+### Keep Taking Turns
+
+- Person B codes, then types: `handoff`
+- Person A types: `takeover`
+- Repeat!
+
+---
+
+## Using SourceTree to Push/Pull
+
+If you prefer SourceTree instead of the `handoff`/`takeover` commands:
+
+### To Push Your Changes:
+1. Open SourceTree
+2. Review changed files at bottom
+3. Check the files you want to commit
+4. Enter commit message at bottom
+5. Click **Commit** button
+6. Click **Push** button in toolbar
+
+### To Pull Partner's Changes:
+1. Open SourceTree
+2. Click **Pull** button in toolbar
+3. Click **OK**
+
+---
 
 ## Troubleshooting
 
-### No remote configured
+### "No remote configured"
+
 ```bash
-# Check remote:
+# Check if remote exists:
 git remote -v
 
-# If empty, add remote:
-git remote add origin YOUR_REPO_URL
+# If empty, add it:
+git remote add origin https://github.com/USERNAME/REPO.git
 ```
 
-### Cloudflared not installed
-Claude will auto-install, or install manually:
+### "Permission denied" when pushing
+
+You need to authenticate SourceTree with GitHub:
+
+1. **Generate a Personal Access Token:**
+   - Go to: [github.com/settings/tokens](https://github.com/settings/tokens)
+   - Click **Generate new token (classic)**
+   - Name it: "SourceTree"
+   - Check: **`repo`** (full control of private repositories)
+   - Click **Generate token**
+   - **COPY THE TOKEN** (you won't see it again!)
+
+2. **Add to SourceTree:**
+   - SourceTree → **Preferences** (⌘,)
+   - Click **Accounts** tab
+   - Click **Add...**
+   - Host: **GitHub**
+   - Auth Type: **Basic**
+   - Username: Your GitHub username
+   - Password: **PASTE THE TOKEN HERE**
+   - Click **OK**
+
+### Can't see partner's changes live
+
+Make sure:
+- Your partner ran `handoff` to push their changes
+- You ran `takeover` to pull them
+- Or just pull in SourceTree
+
+The live link is for **watching** as they code. Use `takeover` to actually get the code.
+
+---
+
+## What's Happening Behind the Scenes
+
+When you say **"handoff"**, Claude runs:
 ```bash
-brew install cloudflare/cloudflare/cloudflared
+git add -A
+git commit -m "Your changes"
+git push origin main
 ```
 
-### Port detection failed
-Manually specify:
+When you say **"takeover"**, Claude runs:
 ```bash
-cloudflared tunnel --url http://localhost:YOUR_PORT
+git pull --rebase origin main
 ```
 
-## Contributing
+The Cloudflare tunnel lets your partner's browser connect to your `localhost:5173` (or whatever port) through the internet. It's temporary and auto-closes when you stop your dev server.
 
-Contributions welcome! Please open an issue or PR.
+---
+
+## Requirements
+
+- Git installed
+- GitHub account
+- SourceTree (or command line git skills)
+- Claude Code
+- Homebrew (for cloudflared)
+- A project with a dev server (Vite, Next.js, Create React App, etc.)
+
+---
 
 ## License
 
-MIT - See [LICENSE](LICENSE) file for details
+MIT - See [LICENSE](LICENSE) file
