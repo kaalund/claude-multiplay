@@ -46,20 +46,7 @@ Follow these steps if you're new to pair programming with git.
 
 ---
 
-### Step 3: Install Claude Code (First Time Only)
-
-**Both developers:**
-
-1. Install Claude Code CLI:
-   ```bash
-   curl -fsSL https://cli.anthropic.com/install.sh | sh
-   ```
-
-2. Or download the desktop app from [claude.ai/code](https://claude.ai/code)
-
----
-
-### Step 4: Person A - Create the Project Repository
+### Step 3: Person A - Create the Project Repository
 
 **Person A only:**
 
@@ -111,7 +98,7 @@ Follow these steps if you're new to pair programming with git.
 
 ---
 
-### Step 5: Person B - Clone the Repository
+### Step 4: Person B - Clone the Repository
 
 **Person B only (after accepting the invite):**
 
@@ -137,7 +124,7 @@ Follow these steps if you're new to pair programming with git.
 
 ---
 
-### Step 6: Install Multiplay Skill
+### Step 5: Install Multiplay Skill
 
 **Both developers:**
 
@@ -154,7 +141,7 @@ curl -o ~/.claude/skills/multiplay/SKILL.md \
 
 ---
 
-### Step 7: Install Cloudflare Tunnel (First Time Only)
+### Step 6: Install Cloudflare Tunnel (First Time Only)
 
 **Both developers:**
 
