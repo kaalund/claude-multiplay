@@ -134,7 +134,7 @@ mkdir -p ~/.claude/skills/multiplay
 
 # Download the skill
 curl -o ~/.claude/skills/multiplay/SKILL.md \
-  https://raw.githubusercontent.com/kaalund/claude-multiplay/main/multiplay.md
+  https://raw.githubusercontent.com/kaalund/claude-multiplay/main/SKILL.md
 
 # Restart Claude Code
 ```
@@ -173,7 +173,7 @@ claude
 npm run dev
 ```
 
-**Claude automatically detects your dev server and shows:**
+**Claude automatically detects your dev server**, configures it to allow tunnel connections, creates a Cloudflare tunnel, and shows:
 ```
 ✅ Shareable link ready!
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -183,6 +183,8 @@ npm run dev
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
+
+> **Note:** Claude may need to add `allowedHosts` config to your dev server (e.g. Vite, Webpack) and restart it. This is normal - it only happens once per project.
 
 **Share that link with Person B** - they can watch your changes live!
 
@@ -287,6 +289,34 @@ Make sure:
 
 The live link is for **watching** as they code. Use `takeover` to actually get the code.
 
+### Tunnel link shows "This host is not allowed"
+
+Your dev server is blocking the Cloudflare tunnel domain. Claude should handle this automatically, but if it didn't:
+
+**For Vite** - add to `vite.config.js`:
+```javascript
+server: { allowedHosts: ['.trycloudflare.com'] }
+```
+
+**For Webpack Dev Server** - add to config:
+```javascript
+devServer: { allowedHosts: ['.trycloudflare.com'] }
+```
+
+Then restart your dev server and tell Claude to create the tunnel again.
+
+### Tunnel fails with timeout errors
+
+This usually means the default QUIC protocol is blocked by your network. Tell Claude "create tunnel with http2" or it should use `--protocol http2` automatically.
+
+### Tunnel link doesn't work / multiple tunnels
+
+Kill any old tunnels and try again:
+```bash
+pkill cloudflared
+```
+Then ask Claude to create a new tunnel.
+
 ---
 
 ## What's Happening Behind the Scenes
@@ -303,7 +333,7 @@ When you say **"takeover"**, Claude runs:
 git pull --rebase origin main
 ```
 
-The Cloudflare tunnel lets your partner's browser connect to your `localhost:5173` (or whatever port) through the internet. It's temporary and auto-closes when you stop your dev server.
+The Cloudflare tunnel lets your partner's browser connect to your `localhost` through the internet. It's temporary and auto-closes when you stop your dev server. Claude uses `--protocol http2` for reliable connections.
 
 ---
 
