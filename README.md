@@ -169,8 +169,10 @@ code .  # or open in your editor
 # Start Claude Code
 claude
 
-# Start your dev server (Vite, Next.js, etc.)
-npm run dev
+# Start your dev server:
+npm run dev              # For React/Vue/Next.js projects
+# OR for plain HTML projects:
+python3 -m http.server 8000
 ```
 
 **Claude automatically detects your dev server**, configures it to allow tunnel connections, creates a Cloudflare tunnel, and shows:
@@ -184,7 +186,7 @@ npm run dev
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
-> **Note:** Claude may need to add `allowedHosts` config to your dev server (e.g. Vite, Webpack) and restart it. This is normal - it only happens once per project.
+> **Note:** For React/Vue/Next.js projects, Claude may need to add `allowedHosts` config to your dev server and restart it. This is normal and only happens once per project. Plain HTML projects using `python3 -m http.server` or similar don't need this.
 
 **Share that link with Person B** - they can watch your changes live!
 
@@ -344,7 +346,9 @@ The Cloudflare tunnel lets your partner's browser connect to your `localhost` th
 - SourceTree (or command line git skills)
 - Claude Code
 - Homebrew (for cloudflared)
-- A project with a dev server (Vite, Next.js, Create React App, etc.)
+- A way to serve your project locally:
+  - **React/Vue/Next.js projects:** `npm run dev` (requires Node.js)
+  - **Plain HTML projects:** `python3 -m http.server` (Python comes pre-installed on Mac)
 
 ---
 

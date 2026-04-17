@@ -59,8 +59,15 @@ Auto-detect dev server output patterns:
 - `Server running at http://localhost:PORT` (generic)
 - `ready - started server on` (Next.js)
 - `App running at: http://localhost:PORT` (Vue CLI)
+- `Serving HTTP on :: port PORT` (Python http.server)
 
 Or when user says "share my dev server" / "create tunnel".
+
+**For static HTML projects** (no Node/framework): start a simple server first:
+```bash
+python3 -m http.server 8000
+```
+Then create the tunnel pointing to that port. No `allowedHosts` config needed.
 
 ### Tunnel Creation Procedure
 
@@ -71,9 +78,9 @@ Follow this exact order. Skipping steps causes failures.
 command -v cloudflared || brew install cloudflare/cloudflare/cloudflared
 ```
 
-**Step 2: Configure dev server to allow cloudflare hosts**
+**Step 2: Configure dev server to allow cloudflare hosts (framework servers only)**
 
-Most dev servers block unknown hosts. This must be done BEFORE creating the tunnel and requires a server restart.
+Framework dev servers (Vite, Webpack) block unknown hosts. Skip this step for simple/static servers (`python3 -m http.server`, `npx serve`, etc.).
 
 - **Vite** (`vite.config.js`): add `server: { allowedHosts: ['.trycloudflare.com'] }`
 - **Next.js** (`next.config.js`): no host blocking by default, usually fine
